@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>PagalChora - Secure Form</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!-- ✅ Responsive -->
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background: black;
+      font-family: 'Courier New', monospace;
+      overflow-x: hidden;
+    }
+
+    canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      z-index: -1;
+    }
+
+    .form-box {
+      position: relative;
+      max-width: 400px;
+      width: 90%;
+      margin: 50px auto;
+      padding: 20px;
+      border: 2px solid #00ff00;
+      border-radius: 10px;
+      color: #00ff00;
+      text-align: center;
+      background-color: rgba(0, 0, 0, 0.7);
+      box-shadow: 0 0 15px #00ff00;
+    }
+
+    .form-box h2 {
+      margin-bottom: 20px;
+      font-size: 20px;
+    }
+
+    .form-box input,
+    .form-box textarea,
+    .form-box button {
+      width: 100%;
+      margin: 10px 0;
+      padding: 12px;
+      background: transparent;
+      border: 1px solid #00ff00;
+      color: #00ff00;
+      font-size: 14px;
+      outline: none;
+      border-radius: 6px;
+    }
+
+    .form-box textarea {
+      min-height: 70px;
+      resize: none;
+    }
+
+    .form-box button:hover {
+      background: #00ff00;
+      color: black;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    /* ✅ Responsive design */
+    @media (max-width: 600px) {
+      .form-box {
+        margin: 20px;
+        padding: 15px;
+      }
+
+      .form-box h2 {
+        font-size: 18px;
+      }
+    }
+
+    .map-link {
+      margin-top: 10px;
+      display: block;
+      color: #00ff00;
+      text-decoration: underline;
+      word-wrap: break-word;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="matrix"></canvas>
+
+  <div class="form-box">
+    <h2>PagalChora - Secure Form</h2>
+    <form id="secureForm">
+      <input type="text" name="name" placeholder="Enter Name" required>
+      <input type="email" name="email" placeholder="Enter Email" required>
+      <input type="tel" name="phone" placeholder="Enter Phone Number" required>
+
+      <textarea name="description" placeholder="Write your description..." required></textarea>
+      
+      <!-- ✅ Location Section -->
+      <textarea name="location" id="locationField" placeholder="Auto-detected location will appear here" readonly></textarea>
+      
+      <a id="mapLink" class="map-link" target="_blank" style="display:none;">📍 Open in Google Maps</a>
+      
+      <button type="button" id="detectBtn">Auto Detect Location</button>
+      <button type="submit">Submit</button>
+    </form>
+  </div>
+
+  <script>
+    // ✅ Matrix background effect
+    const canvas = document.getElementById("matrix");
+    const ctx = canvas.getContext("2d");
+
+    canvas.height = window.innerHeight;
+    canvas.width = window.innerWidth;
+
+    const letters = "01ABCDEFGHIJKLMNOPQRSTUVWXYZ#$%&@";
+    const lettersArray = letters.split("");
+
+    const fontSize = 14;
+    const columns = canvas.width / fontSize;
+
+    const drops = [];
+    for (let x = 0; x < columns; x++) {
+      drops[x] = 1;
+    }
+
+    function draw() {
+      ctx.fillStyle = "rgba(0, 0, 0, 0.05)";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.fillStyle = "#0F0";
+      ctx.font = fontSize + "px monospace";
+
+      for (let i = 0; i < drops.length; i++) {
+        const text = lettersArray[Math.floor(Math.random() * lettersArray.length)];
+        ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+
+        if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+          drops[i] = 0;
+        }
+        drops[i]++;
+      }
+    }
+
+    setInterval(draw, 35);
+
+    // ✅ Auto Detect Address with Map Link
+    document.getElementById("detectBtn").addEventListener("click", () => {
+      const locField = document.getElementById("locationField");
+      const mapLink = document.getElementById("mapLink");
+
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition((position) => {
+          const lat = position.coords.latitude;
+          const lon = position.coords.longitude;
+
+          // Reverse Geocoding (OpenStreetMap API)
+          fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`)
+            .then(response => response.json())
+            .then(data => {
+              const address = data.display_name;
+              locField.value = address;
+              mapLink.href = `https://www.google.com/maps?q=${lat},${lon}`;
+              mapLink.style.display = "block";
+            })
+            .catch(() => {
+              locField.value = `Latitude: ${lat}, Longitude: ${lon}`;
+              mapLink.href = `https://www.google.com/maps?q=${lat},${lon}`;
+              mapLink.style.display = "block";
+            });
+        }, () => {
+          alert("❌ Location access denied!");
+        });
+      } else {
+        alert("❌ Geolocation not supported in this browser.");
+      }
+    });
+
+    // ✅ Form submission (Right now just alert)
+    const form = document.getElementById("secureForm");
+    form.addEventListener("submit", function(e) {
+      e.preventDefault();
+      const formData = new FormData(form);
+      const data = Object.fromEntries(formData.entries());
+
+      alert(`✅ Data Submitted!\n\nName: ${data.name}\nEmail: ${data.email}\nPhone: ${data.phone}\nDescription: ${data.description}\nLocation: ${data.location}`);
+
+      form.reset();
+      document.getElementById("mapLink").style.display = "none";
+    });
+
+    window.addEventListener("resize", () => {
+      canvas.height = window.innerHeight;
+      canvas.width = window.innerWidth;
+    });
+  </script>
+</body>
+</html>
